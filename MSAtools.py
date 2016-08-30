@@ -354,7 +354,6 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
         etaes = getetaes(omegaes,deltaes,rhoisFilter,sigmas,zs,GammaFilterPrev)
         GammaFilter = getgamma(rhoisFilter,zs,sigmas,etaes,GammaFilterPrev,CalcBjerrum())
         gammadiff = (GammaFilterPrev - GammaFilter)/GammaFilterPrev
-        GammaFilterPrev = GammaFilter
 
         itersgamma += 1
         if itersgamma > maxitersGamma:
@@ -400,6 +399,11 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     ## Update psi
     psi = UpdatePsi(rhoisFilter,zs,psiPrev)
     psiDiff = np.abs(psiPrev-psi)/psi
+
+    psiTol = -1
+    if psi >(0-psiTol):
+      print "Psi ", psi 
+      raise RuntimeError("psi should not be positive for a negatively-charged filter. Somethings wrong")
     if verbose:
       print "itersgamma %d, iters %d"%(itersgamma,iters) 
       print "psi %f/psiDiff %f"% (psi,psiDiff)

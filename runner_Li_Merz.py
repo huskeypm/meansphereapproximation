@@ -1,6 +1,5 @@
 import cPickle as pickle
 import numpy as np
-import MSAtools as msa
 from timeit import default_timer as timer
 
 class Params():   
@@ -141,7 +140,7 @@ def debug():
       params.zs = np.array([-0.5, -1.0, 1.0, 2.00,2.0]) #input charges here
       params.sigmas = np.array([0.278, 0.362, 0.204, 0.320,0.28])
       params.setup(nOxy,cacl2)
-      daLoop(params = params,volumes=np.linspace(0.375,1.000,3))
+      daLoop(params = params,volumes=np.linspace(0.375,1.000,30))
 
     # debug iter 
     if 0: 
@@ -255,6 +254,7 @@ def daIter(
     start = timer()
     
     # run MSA 
+    import MSAtools as msa
     mufilteri,donnanPotentiali,mu_ESi,mu_HSi,rhoFilteri = msa.SolveMSAEquations(
       params.filter_dielectric,
       params.conc_M,
@@ -266,8 +266,8 @@ def daIter(
       psiPrev=psiPrev,
       muiexsPrev=muiexsPrev,
       alpha=alpha, 
-      #verbose=False)
-      verbose=True)
+      verbose=False)
+      #verbose=True)
 
     ## store results     
     # returned
