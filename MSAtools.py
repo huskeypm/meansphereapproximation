@@ -10,7 +10,6 @@ kT_mV = 25.6 # mV * e0
 kT_kcalmol = 0.59 # [kcal/mol]
 m_to_nm = 1e9
 idxOxy=0
-nOxy = 8.
 e0 = 1/kT_mV
 print "WARNING: oxy always must be first entry" 
 
@@ -254,20 +253,21 @@ def xiStuff(rhos,sigmas):
 
 
 def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
-  nOxy,
+  nOxy=8,   # From Nonner 
   muiexsPrev = 0.,
-  maxiters = 1e10, # max iteration before loop leaves in dispair 
+  maxiters = 2e4, # max iteration before loop leaves in dispair 
+#  maxiters = 1e10, # max iteration before loop leaves in dispair 
   psiPrev = 0.,
   psitol = 1.0e-8,
-  gammaTol = 1.0e-8,
+  gammaTol = 1.0e-4, # PKH changes this (I think 1e-8 is too restrictive) 
   alpha = 1e-3,  # convergence rate (faster values accelerate convergence) 
-  maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
+  #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
+  maxitersGamma = 1e2, # max iteration before loop leaves in dispair 
   useSelfConsistGammaOpt = True,  
   verbose=False):
   psiDiff  = 1e9
   muiexDiff = 1e9
 
-  
 
   ## Convert concs/numbers into densities 
   conc_M_to_N_o_nm3 = conc_M * M_to_N_o_nm3 # [#/nm3]
@@ -343,10 +343,10 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     #print GammaFilter
     GammaFilterPrev = CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
     GammaFilterPrev /= m_to_nm
-    GammaFilter = 5. + GammaFilterPrev
-    gammadiff = (GammaFilterPrev - GammaFilter)/GammaFilterPrev
     itersgamma = 0
     if useSelfConsistGammaOpt:
+      #print "Going into selfconsist gamma opt"
+      gammadiff = gammaTol + 5  # force at least one iteration 
       while(abs(gammadiff) > gammaTol):
        
         deltaes = getdeltaes(rhoisFilter,sigmas)
@@ -358,7 +358,8 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
 
         itersgamma += 1
         if itersgamma > maxitersGamma:
-            print "Your function broke (itersgamma %d exceeded, prev/curr %f/%f/%f)"%(maxitersGamma,GammaFilterPrev, GammaFilter,gammadiff)
+            print "Your function broke (itersgamma %d exceeded, prev/curr %f/%f/%f)"%\
+                   (maxitersGamma,GammaFilterPrev, GammaFilter,gammadiff)
             break
         GammaFilterPrev = GammaFilter
     # Use scipy optimize
@@ -400,6 +401,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     psi = UpdatePsi(rhoisFilter,zs,psiPrev)
     psiDiff = np.abs(psiPrev-psi)/psi
     if verbose:
+      print "itersgamma %d, iters %d"%(itersgamma,iters) 
       print "psi %f/psiDiff %f"% (psi,psiDiff)
       print "rhoisFilter ", rhoisFilter
       print "muiexDiff", muiexDiff
@@ -421,6 +423,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   results["mu_ES"] = mu_ES 
   results["mu_HS"] = mu_HS 
   results["rhoFilter"] = rhoisFilter
+  print "itersgamma %d, iters %d"%(itersgamma,iters) 
 
   return muiexs,psi,mu_ES,mu_HS,rhoisFilter
 

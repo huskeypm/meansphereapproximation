@@ -24,7 +24,16 @@ class Params():
     self.isSetup = False
     self.pklName = pklName
 
-  def setup(self,nOxy,cacl2):
+  def setup(self,nOxy=None,cacl2=None):
+    if nOxy==None:
+      nOxy = self.nOxy
+    else: 
+      self.nOxy = nOxy
+    if cacl2==None:
+      cacl2= self.cacl2 
+    else: 
+      self.cacl2 = cacl2
+
     # set ion concentrations 
     self.nIons = np.shape(self.ref_conc_M)[0]
     self.Ns = np.ones( self.nIons )# Number of ions in filter (first number is fixed, others are determined by MSA)
@@ -33,7 +42,6 @@ class Params():
     print "Ns: ", self.Ns
 
     # update concs
-    self.cacl2 = cacl2
     self.conc_M = np.copy(self.ref_conc_M)
     self.conc_M[self.idxCl] = self.ref_conc_M[self.idxCl] + 2 * self.cacl2
     self.conc_M[self.idxCa] = self.cacl2
@@ -123,7 +131,7 @@ def debug():
     ## Noxy   
     ## 
     if 1: 
-      nOxy = 6
+      nOxy = 6.0
       mgcl2 = 2e-3 # [M]
       cacl2 = 1e-6 # [M] 
       kcl = 100e-3 # [M]
@@ -133,7 +141,30 @@ def debug():
       params.zs = np.array([-0.5, -1.0, 1.0, 2.00,2.0]) #input charges here
       params.sigmas = np.array([0.278, 0.362, 0.204, 0.320,0.28])
       params.setup(nOxy,cacl2)
-      daLoop(params = params,volumes=np.linspace(0.375,1.000,5))
+      daLoop(params = params,volumes=np.linspace(0.375,1.000,3))
+
+    # debug iter 
+    if 0: 
+      nOxy = 6.0
+      mgcl2 = 2e-3 # [M]
+      cacl2 = 1e-6 # [M] 
+      kcl = 100e-3 # [M]
+      params.indices = ["O","Cl","K","Ca","Mg"]
+      params.filter_dielectric = 40.
+      params.ref_conc_M = np.array([1e-200, kcl+2*mgcl2, kcl, 0,mgcl2])  # [M] order is  O, Cl, Na, Ca, mg (bath) 
+      params.zs = np.array([-0.5, -1.0, 1.0, 2.00,2.0]) #input charges here
+      params.sigmas = np.array([0.278, 0.362, 0.204, 0.320,0.28])
+      params.setup(nOxy,cacl2)
+      #daLoop(params = params,volumes=np.linspace(0.375,1.000,5))
+      # Inserted from where loop failed 
+      muiexsPrev = np.array([ 0.35834118,-0.6872931, -1.49702449,-7.09666043,-7.31364988])
+      psiPrev = -16.1501858134
+      params.V_i = 0.948
+      daIter(
+        params=params,
+        muiexsPrev=muiexsPrev,psiPrev=psiPrev)
+
+      
        
 def daLoop(
     noRun=False,
@@ -172,7 +203,8 @@ def daLoop(
       #print "Vol: ", vol
    
       params.V_i = vol
-      params.pklName = "data_%5.3f_filter_%4.1f_dielectric_%2.1f_nOxy_Mg_added_LiMerz.pkl"%(params.V_i, params.filter_dielectric, params.nOxy)
+      params.pklName = "data_%5.3f_filter_%4.1f_dielectric_%2.1f_nOxy_Mg_added_LiMerz.pkl"%\
+        (params.V_i, params.filter_dielectric, params.nOxy)
       if noRun:
         return params.pklName 
 
@@ -190,7 +222,7 @@ def daLoop(
 
       counter += 1.0
       percentage_done = round((counter/total_counter) * 100,2)
-      print "Current job is", counter, "out of", total_counter
+      print "Current job is", counter, "out of", total_counter, " vol %f"%vol
       print percentage_done,"% done"
 
 
@@ -234,8 +266,8 @@ def daIter(
       psiPrev=psiPrev,
       muiexsPrev=muiexsPrev,
       alpha=alpha, 
-      verbose=False)
-      #verbose=True)
+      #verbose=False)
+      verbose=True)
 
     ## store results     
     # returned
