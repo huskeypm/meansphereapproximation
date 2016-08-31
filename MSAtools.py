@@ -192,14 +192,16 @@ def CalcHS(rhosfilter,sigmas):
 
 
 @jit 
+# Eqn 10 Nonner  
 def getdeltaes(rhos,sigmas):
-    sumtermdeltaes = np.sum(rhos*sigmas)
+    sumtermdeltaes = np.sum(rhos* sigmas**3)  # PKH 
     pitermdeltaes = (np.pi*sumtermdeltaes)/6.
     deltaes = 1. - pitermdeltaes
     return deltaes
 
 
 @jit
+# Eqn 9 Nonner 
 def getomegaes(Gamma,deltaes,rhos,sigmas):
     sumtermomegaes = np.sum((rhos*(sigmas**3))/(1.+(Gamma*sigmas)))
     pitermomegaes = (np.pi * sumtermomegaes) / (2.*deltaes)
@@ -210,6 +212,7 @@ def getomegaes(Gamma,deltaes,rhos,sigmas):
 
 
 @jit
+# Eqn 8 Nonner
 def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     sumtermetaes = np.sum((rhos*sigmas*zs)/(1.+(Gamma*sigmas)))
     pitermetaes = (np.pi * sumtermetaes)/(2.*deltaes)
@@ -219,8 +222,11 @@ def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     return etaes
 
 @jit
+# Eqn 7 Nonner 
 def getgamma(rhos,zs,sigmas,etaes,GammaFilterPrev ,lambda_b=CalcBjerrum()):
-    sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + GammaFilterPrev*sigmas ))**2
+    #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + GammaFilterPrev*sigmas ))**2
+    z = (zs - etaes*sigmas*sigmas)/(1 + GammaFilterPrev*sigmas )
+    sqdTerm = (rhos)*z*z
     sqdTerm = np.sum(sqdTerm)
     fourGammaSqd = 4*np.pi * lambda_b * sqdTerm
     fourGammaSqd*= 1e9
@@ -320,18 +326,21 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   muexBath_kT += mu_HS_bath
   #print "muexBath_kT ", muexBath_kT
 
+  #print mu_HS_filter
+
 
   nIons = np.shape(conc_M)
   Vs = np.ones(nIons)*V_i
   lambdaBFilter = CalcBjerrum(epsilon=epsilonFilter)
   import scipy.optimize
-  iters = 0
+  iterspsi = 0
   #for j in np.arange(maxiters):    
   while(abs(psiDiff) > psitol):
     #print psiDiff, psitol
 
     ##  Get Updated Rhois              
     rhoisFilter = CalcRhoFilter(muexBath_kT,muiexsPrev,psiPrev,zs,rhoisBath)
+    #print 'enter rhois', rhoisFilter,psiPrev
     # reset rhoisFilter[Oxy] back to original value 
     rhoisFilter[idxOxy] = nOxy/V_i
     if verbose:
@@ -345,15 +354,18 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     GammaFilterPrev /= m_to_nm
     itersgamma = 0
     if useSelfConsistGammaOpt:
+      #print "Entering gamma iter",GammaFilterPrev
       #print "Going into selfconsist gamma opt"
       gammadiff = gammaTol + 5  # force at least one iteration 
       while(abs(gammadiff) > gammaTol):
        
-        deltaes = getdeltaes(rhoisFilter,sigmas)
-        omegaes = getomegaes(GammaFilterPrev,deltaes,rhoisFilter,sigmas)
-        etaes = getetaes(omegaes,deltaes,rhoisFilter,sigmas,zs,GammaFilterPrev)
-        GammaFilter = getgamma(rhoisFilter,zs,sigmas,etaes,GammaFilterPrev,CalcBjerrum())
+        # This s.b. function of gamma!
+        deltaes = getdeltaes(rhoisFilter,sigmas)  # Eqn 10?
+        omegaes = getomegaes(GammaFilterPrev,deltaes,rhoisFilter,sigmas) # Eqn 9 
+        etaes = getetaes(omegaes,deltaes,rhoisFilter,sigmas,zs,GammaFilterPrev) # Eqn 8 
+        GammaFilter = getgamma(rhoisFilter,zs,sigmas,etaes,GammaFilterPrev,CalcBjerrum()) # Eqn 7 
         gammadiff = (GammaFilterPrev - GammaFilter)/GammaFilterPrev
+        #print GammaFilter
 
         itersgamma += 1
         if itersgamma > maxitersGamma:
@@ -397,15 +409,16 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     muiexDiff = np.abs(muiexDiff)
 
     ## Update psi
+    #print "psi", psiPrev
     psi = UpdatePsi(rhoisFilter,zs,psiPrev)
     psiDiff = np.abs(psiPrev-psi)/psi
 
-    psiTol = -1
-    if psi >(0-psiTol):
-      print "Psi ", psi 
-      raise RuntimeError("psi should not be positive for a negatively-charged filter. Somethings wrong")
+    #psiTol = 500.
+    #if psi >(psiTol):
+    #  print "Psi ", psi 
+    #  raise RuntimeError("psi should not be positive for a negatively-charged filter. Somethings wrong")
     if verbose:
-      print "itersgamma %d, iters %d"%(itersgamma,iters) 
+      print "itersgamma %d, iterspsi %d"%(itersgamma,iterspsi) 
       print "psi %f/psiDiff %f"% (psi,psiDiff)
       print "rhoisFilter ", rhoisFilter
       print "muiexDiff", muiexDiff
@@ -413,8 +426,8 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     ## Update prev
     psiPrev = psi
     muiexsPrev = muiexs
-    iters += 1
-    if iters > maxiters:
+    iterspsi += 1
+    if iterspsi > maxiters:
       print "Your function broke!"
       break
   # muiexs - chem potential of filter 
@@ -427,7 +440,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   results["mu_ES"] = mu_ES 
   results["mu_HS"] = mu_HS 
   results["rhoFilter"] = rhoisFilter
-  print "itersgamma %d, iters %d"%(itersgamma,iters) 
+  print "itersgamma %d, iterspsi %d"%(itersgamma,iterspsi) 
 
   return muiexs,psi,mu_ES,mu_HS,rhoisFilter
 

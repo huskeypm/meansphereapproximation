@@ -79,6 +79,18 @@ def debug():
     params = Params()
     params.indices=["O","Cl","Na","Ca","Mg"]  # ALWAYS put oxygen first
 
+
+    ## 
+    ## Nonner test 
+    ## 
+    if 1: 
+      params = Params()
+      nOxy=8; cacl2=1e-6
+      params.setup(nOxy,cacl2) 
+      pklName = daIter(params=params)
+      daIter(
+        params=params)
+
     ##
     ## Equivalent to validation case, except have entry for mg 
     ##
@@ -129,7 +141,7 @@ def debug():
     ##
     ## Noxy   
     ## 
-    if 1: 
+    if 0: 
       nOxy = 6.0
       mgcl2 = 2e-3 # [M]
       cacl2 = 1e-6 # [M] 
@@ -144,12 +156,12 @@ def debug():
 
     # debug iter 
     if 0: 
-      nOxy = 6.0
-      mgcl2 = 2e-3 # [M]
+      nOxy = 8.0
+      mgcl2 = 0e-3 # [M]
       cacl2 = 1e-6 # [M] 
       kcl = 100e-3 # [M]
       params.indices = ["O","Cl","K","Ca","Mg"]
-      params.filter_dielectric = 40.
+      params.filter_dielectric = 13.
       params.ref_conc_M = np.array([1e-200, kcl+2*mgcl2, kcl, 0,mgcl2])  # [M] order is  O, Cl, Na, Ca, mg (bath) 
       params.zs = np.array([-0.5, -1.0, 1.0, 2.00,2.0]) #input charges here
       params.sigmas = np.array([0.278, 0.362, 0.204, 0.320,0.28])
@@ -157,11 +169,12 @@ def debug():
       #daLoop(params = params,volumes=np.linspace(0.375,1.000,5))
       # Inserted from where loop failed 
       muiexsPrev = np.array([ 0.35834118,-0.6872931, -1.49702449,-7.09666043,-7.31364988])
-      psiPrev = -16.1501858134
+      #psiPrev = -16.1501858134
+      psiPrev = -10.1501858134
       params.V_i = 0.948
       daIter(
         params=params,
-        muiexsPrev=muiexsPrev,psiPrev=psiPrev)
+        muiexsPrev=muiexsPrev,psiPrev=psiPrev,verbose=False) 
 
       
        
@@ -231,7 +244,8 @@ def daIter(
     params = None,
     alpha = 0.0010,
     muiexsPrev=None,
-    psiPrev = None
+    psiPrev = None,
+    verbose=False
     ): 
     # if parameters object not passed, create one and initialize it
     if params==None:
@@ -266,7 +280,7 @@ def daIter(
       psiPrev=psiPrev,
       muiexsPrev=muiexsPrev,
       alpha=alpha, 
-      verbose=False)
+      verbose=verbose)
       #verbose=True)
 
     ## store results     
@@ -310,9 +324,10 @@ def validation():
       results = ReadPickle(pklName)
       # Donnan
       psiPrev = results["donnanPotential"]  
-      val_160830 = -172.558
-      assert(np.abs ( psiPrev - val_160830 ) < 0.001 ),\
-            "FAIL! Curr: %f"%psiPrev
+      val_160831 = -172.718
+      line = "FAIL! Curr: ",psiPrev
+      assert(np.abs ( psiPrev - val_160831 ) < 0.001 ),\
+            line
 
       # chemical potentials 
       ions = ["Cl","Na","Ca"] 
