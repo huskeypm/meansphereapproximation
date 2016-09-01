@@ -14,7 +14,8 @@ class Params():
     self.indices=["O","Cl","Na","Ca"]  # ALWAYS put oxygen first
     self.ref_conc_M = np.array([1e-200, (100.0e-3), 100.0e-3, 0])  # [M] order is  O, Cl, Na, Ca (bath) 
     self.zs = np.array([-0.5, -1.0, 1.0, 2.00]) #input charges here
-    self.sigmas = np.array([0.278, 0.362, 0.204, 0.320])
+    # REPLACING USE NONNER self.sigmas = np.array([0.278, 0.362, 0.204, 0.320])
+    self.sigmas = np.array([0.278, 0.362, 0.204, 0.200])
     self.cacl2 = 1e-6
 
     self.V_i = 0.375 # nm^3
@@ -323,6 +324,7 @@ def validation():
       pklName = daIter(params=params)
       results = ReadPickle(pklName)
       # Donnan
+      print "mufilteri", results['muFilter']
       psiPrev = results["donnanPotential"]  
       val_160831 = -172.718
       line = "FAIL! Curr: ",psiPrev
