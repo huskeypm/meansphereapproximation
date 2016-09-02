@@ -19,7 +19,6 @@ print "WARNING: oxy always must be first entry"
 results = {}
 results["e0"] = e0
 
-
 # lambda = e^2/ (4 pi eps eps_r kT)
 # numbers from Israelachvili
 # Verified 
@@ -31,6 +30,80 @@ def CalcBjerrum(epsilon=78.4):
   lambda_b = num/(4*np.pi*denom)
   #print "Bj. len [nm] %f"%(lambda_b*1e9)
   return lambda_b
+
+
+##########################
+## GAMMA OPTIMIZATIONS 
+#########################
+import scipy.optimize 
+def getGamma_Iter(rhoisFilter,zs,sigmas,   
+  gammaTol = 1.0e-4, # PKH changes this (I think 1e-8 is too restrictive) 
+  maxitersGamma = 1e3
+  ): 
+  itersgamma = 0 
+  gammaFilterPrev = CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
+  gammaFilterPrev /= m_to_nm
+  gammadiff = gammaTol + 5  # force at least one iteration 
+  while(abs(gammadiff) > gammaTol):
+    deltaes = getdeltaes(rhoisFilter,sigmas)  # Eqn 10?
+    omegaes = getomegaes(gammaFilterPrev,deltaes,rhoisFilter,sigmas) # Eqn 9 
+    etaes = getetaes(omegaes,deltaes,rhoisFilter,sigmas,zs,gammaFilterPrev) # Eqn 8 
+    gammaFilter = getgamma(rhoisFilter,zs,sigmas,etaes,gammaFilterPrev,CalcBjerrum()) # Eqn 7 
+    gammadiff = (gammaFilterPrev - gammaFilter)/gammaFilterPrev
+        #print gammaFilter
+
+    itersgamma += 1
+    if itersgamma > maxitersGamma:
+      print "Your function broke (itersgamma %d exceeded, prev/curr %f/%f/%f)"%\
+                     (maxitersGamma,gammaFilterPrev, gammaFilter,gammadiff)
+      break
+       
+    gammaFilterPrev = gammaFilter
+  return gammaFilter,itersgamma
+
+@jit
+def getgammaRHS(rhos,zs,sigmas,gammaFilterPrev ,lambda_b=CalcBjerrum()): 
+    deltaes = getdeltaes(rhos,sigmas)  # Eqn 10?
+    omegaes = getomegaes(gammaFilterPrev,deltaes,rhos,sigmas) # Eqn 9 
+    etaes = getetaes(omegaes,deltaes,rhos,sigmas,zs,gammaFilterPrev) # Eqn 8 
+    #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas ))**2
+    #print rhos,zs, etaes, sigmas, gammaFilterPrev
+    bracket = (zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas )
+    #print "bracket",bracket
+    sqdTerm = (rhos)*bracket*bracket
+    sqdTerm = np.sum(sqdTerm)
+    #print "sqdTerm", sqdTerm
+    RHS = 4*np.pi * lambda_b * sqdTerm
+    RHS*= 1e9
+    
+    #newGamma = np.sqrt(fourGammaSqd) / 2.
+    return RHS
+
+# define 0 = RHS - LHS 
+@jit
+def myf(gamma,rhos,zs,sigmas):
+    RHS = getgammaRHS(rhos,zs,sigmas,gamma ,lambda_b=CalcBjerrum())
+    LHS = 4*(gamma**2)
+    #print "R/L",RHS,LHS
+    return RHS - LHS
+
+# Solve's 'myf' within left and right bounds  via Brent's method.
+# If bounds are incompatible, determine new points s.t. myf(left)<0,myf(right)>0
+def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=100): 
+  prod =  myf(leftBound,rhos,zs,sigmas)
+  prod*=  myf(rightBound,rhos,zs,sigmas)
+  assert prod<0, "BOUNDS DO NOT BRACKET A ZERO!!"
+  gamma = scipy.optimize.brentq(myf, leftBound,rightBound, 
+          args=(rhos,zs,sigmas), maxiter=200)
+  return gamma 
+
+
+
+
+####################
+
+
+
 
 
 # verified (see notebook) 
@@ -223,9 +296,9 @@ def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
 
 @jit
 # Eqn 7 Nonner 
-def getgamma(rhos,zs,sigmas,etaes,GammaFilterPrev ,lambda_b=CalcBjerrum()):
-    #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + GammaFilterPrev*sigmas ))**2
-    z = (zs - etaes*sigmas*sigmas)/(1 + GammaFilterPrev*sigmas )
+def getgamma(rhos,zs,sigmas,etaes,gammaFilterPrev ,lambda_b=CalcBjerrum()):
+    #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas ))**2
+    z = (zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas )
     sqdTerm = (rhos)*z*z
     sqdTerm = np.sum(sqdTerm)
     fourGammaSqd = 4*np.pi * lambda_b * sqdTerm
@@ -269,7 +342,8 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   alpha = 1e-3,  # convergence rate (faster values accelerate convergence) 
   #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
   maxitersGamma = 1e2, # max iteration before loop leaves in dispair 
-  useSelfConsistGammaOpt = True,  
+  #gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
+  gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
   verbose=False):
   psiDiff  = 1e9
   muiexDiff = 1e9
@@ -303,7 +377,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
 
   ## Calculate Bjerrum, filter chem potential 
 
-  #GammaFilter = 2.11 # [nm] 
+  #gammaFilter = 2.11 # [nm] 
   # verified
   #lambdaBFilter = msa.CalcBjerrum(epsilon=epsilonFilter)
 
@@ -347,48 +421,44 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
       print "p [M] (Before  oxy correct): ", rhoisFilter
       print "p [M] (After oxy correct): ", rhoisFilter
         
-    ##!GammaFilter = msa.CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
-    ##!GammaFilter/= msa.m_to_nm
-    #print GammaFilter
-    GammaFilterPrev = CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
-    GammaFilterPrev /= m_to_nm
+    ##!gammaFilter = msa.CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
+    ##!gammaFilter/= msa.m_to_nm
+    #print gammaFilter
     itersgamma = 0
-    if useSelfConsistGammaOpt:
-      #print "Entering gamma iter",GammaFilterPrev
+    if gammaOpt=="useSelfConsistGammaOpt":
+      #print "Entering gamma iter",gammaFilterPrev
       #print "Going into selfconsist gamma opt"
-      gammadiff = gammaTol + 5  # force at least one iteration 
-      while(abs(gammadiff) > gammaTol):
-       
-        # This s.b. function of gamma!
-        deltaes = getdeltaes(rhoisFilter,sigmas)  # Eqn 10?
-        omegaes = getomegaes(GammaFilterPrev,deltaes,rhoisFilter,sigmas) # Eqn 9 
-        etaes = getetaes(omegaes,deltaes,rhoisFilter,sigmas,zs,GammaFilterPrev) # Eqn 8 
-        GammaFilter = getgamma(rhoisFilter,zs,sigmas,etaes,GammaFilterPrev,CalcBjerrum()) # Eqn 7 
-        gammadiff = (GammaFilterPrev - GammaFilter)/GammaFilterPrev
-        #print GammaFilter
-
-        itersgamma += 1
-        if itersgamma > maxitersGamma:
-            print "Your function broke (itersgamma %d exceeded, prev/curr %f/%f/%f)"%\
-                   (maxitersGamma,GammaFilterPrev, GammaFilter,gammadiff)
-            break
-        GammaFilterPrev = GammaFilter
+      gammaFilter, itersgamma = getGamma_Iter(
+        rhoisFilter,zs,sigmas,gammaTol=gammaTol,maxitersGamma=maxitersGamma)
+      #print "Itert", gammaFilterPrev
+      gammaIter = gammaFilter
+    #elif gammaOpt = "Brents":
+    # VERIFIED THAT BRENTS AND ITERATIVE APPROACH RETURN APPROXIMATELY
+    # THE SAME GAMMA VALUES 160902 
+    elif gammaOpt=="Brents":
+      gammaBrents = getGamma_Brents(rhoisFilter,zs,sigmas)
+      gammaFilter = gammaBrents
+      #gammaFilterPrev = gammaFilter
+      #print "Brents", gammaBrents
+        
     # Use scipy optimize
     else:
-      xopt = scipy.optimize.fmin(func=MSAeqn,x0=GammaFilter,disp=False,\
+      gammaFilterPrev = CalcKappa(rhoisFilter)/2.  # use Gamma based on filter concs
+      gammaFilterPrev /= m_to_nm
+      xopt = scipy.optimize.fmin(func=MSAeqn,x0=gammaFilterPrev,disp=False,\
                                args=(rhoisFilter,Vs,zs,sigmas,lambdaBFilter))
     
-      GammaFilter = xopt[0]
+      gammaFilter = xopt[0]
 
     if verbose:
-      print "GammaFilter", GammaFilter
-    #print "GammaF %f" % GammaFilter
+      print "gammaFilter", gammaFilter
+    #print "GammaF %f" % gammaFilter
       # get updated muis    
     #muiexs = np.zeros(nIons)
     #print zis
 
 
-    mu_ES = CalcMuexs(GammaFilterPrev,zs,lambdaBFilter)
+    mu_ES = CalcMuexs(gammaFilter,zs,lambdaBFilter)
     mu_HS = CalcHS(rhoisFilter,sigmas)
     
     muiexs = mu_ES + mu_HS
@@ -441,6 +511,10 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   results["mu_HS"] = mu_HS 
   results["rhoFilter"] = rhoisFilter
   print "itersgamma %d, iterspsi %d"%(itersgamma,iterspsi) 
+
+
+  #print "Checking gamma from iteration vs. brents", gammaIter,gammaBrents
+  print gammaFilter
 
   return muiexs,psi,mu_ES,mu_HS,rhoisFilter
 
