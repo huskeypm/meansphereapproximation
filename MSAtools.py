@@ -89,7 +89,7 @@ def myf(gamma,rhos,zs,sigmas):
 
 # Solve's 'myf' within left and right bounds  via Brent's method.
 # If bounds are incompatible, determine new points s.t. myf(left)<0,myf(right)>0
-def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=100): 
+def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=50): 
   prod =  myf(leftBound,rhos,zs,sigmas)
   prod*=  myf(rightBound,rhos,zs,sigmas)
   assert prod<0, "BOUNDS DO NOT BRACKET A ZERO!!"
