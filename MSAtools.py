@@ -90,9 +90,10 @@ def myf(gamma,rhos,zs,sigmas):
 # Solve's 'myf' within left and right bounds  via Brent's method.
 # If bounds are incompatible, determine new points s.t. myf(left)<0,myf(right)>0
 def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=50): 
-  prod =  myf(leftBound,rhos,zs,sigmas)
-  prod*=  myf(rightBound,rhos,zs,sigmas)
-  assert prod<0, "BOUNDS DO NOT BRACKET A ZERO!!"
+  lb =  myf(leftBound,rhos,zs,sigmas)
+  rb =  myf(rightBound,rhos,zs,sigmas)
+  prod = lb*rb
+  assert prod<0, "BOUNDS DO NOT BRACKET A ZERO!! %f/%f"%(lb,rb)
   gamma = scipy.optimize.brentq(myf, leftBound,rightBound, 
           args=(rhos,zs,sigmas), maxiter=200)
   return gamma 
@@ -344,6 +345,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   maxitersGamma = 1e2, # max iteration before loop leaves in dispair 
   #gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
   gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
+  mu_Strain= None,   
   verbose=False):
   psiDiff  = 1e9
   muiexDiff = 1e9
@@ -461,7 +463,11 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     mu_ES = CalcMuexs(gammaFilter,zs,lambdaBFilter)
     mu_HS = CalcHS(rhoisFilter,sigmas)
     
+    # determine chemical potential in the filter 
     muiexs = mu_ES + mu_HS
+    if mu_Strain!=None:    
+      muiexs += mu_Strain
+
     if verbose:
       print "mu_ES",mu_ES
       print "mu_HS",mu_HS
@@ -514,7 +520,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
 
 
   #print "Checking gamma from iteration vs. brents", gammaIter,gammaBrents
-  print gammaFilter
+  #print gammaFilter
 
   return muiexs,psi,mu_ES,mu_HS,rhoisFilter
 

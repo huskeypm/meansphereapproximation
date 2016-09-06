@@ -36,7 +36,7 @@ def validation1():
    
   chemPotential,donnanPotential,muES,muHS,rhoFilter = msa.SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas)
   correctmu = np.array([4.7113072,6.90965741,1.22106921,-4.1851689])
-  correctpsi = -173.100988931
+  correctpsi = -173.269
   correctrhos = np.array([2.13333333e+01,4.88143119e-08,1.06652933e+01,6.72892874e-04])
   eps = 1e-3
   if np.abs(all(chemPotential) - all(correctmu))<eps:
