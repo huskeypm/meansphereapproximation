@@ -354,10 +354,15 @@ if __name__ == "__main__":
       raise RuntimeError(msg)
 
   # Loops over each argument in the command line 
+  params = Params()
   for i,arg in enumerate(sys.argv):
     # calls 'doit' with the next argument following the argument '-validation'
     if(arg=="-nOxy"):              
-      nOxy = np.float( sys.argv[i+1] ) 
+      params.nOxy = np.float( sys.argv[i+1] ) 
+    if(arg=="-filterVol"):              
+      params.V_i= np.float( sys.argv[i+1] ) 
+    if(arg=="-filterDielec"):              
+      params.filter_dielectric = np.float( sys.argv[i+1] ) 
     if(arg=="-validation"): 
       validation()
       quit()
@@ -366,9 +371,11 @@ if __name__ == "__main__":
       quit()
     if(arg=="-test1"): 
       #test1(np.float(sys.argv[1]),np.float(sys.argv[2]),np.float(sys.argv[3]))
+      raise RuntimeError("This doesn't make sense. PKH investiate") 
       test1(np.float(sys.argv[1]),np.float(sys.argv[2]))
       quit()
 
 
-  daIter()      #np.float(sys.argv[1]),np.float(sys.argv[2]),np.float(sys.argv[3]))
+  params.setup()
+  daIter(params=params)
 
