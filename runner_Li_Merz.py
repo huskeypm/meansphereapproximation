@@ -12,11 +12,11 @@ class Params():
     self.idxK  = 2
     self.idxMg = 4
     self.indices=["O","Cl","Na","Ca"]  # ALWAYS put oxygen first
-    self.ref_conc_M = np.array([1e-200, (100.0e-3), 100.0e-3, 0])  # [M] order is  O, Cl, Na, Ca (bath) 
+    self.ref_conc_M = np.array([1e-200, (100.0e-3), 100.0e-3, 1e-10])  # [M] order is  O, Cl, Na, Ca (bath) 
     self.zs = np.array([-0.5, -1.0, 1.0, 2.00]) #input charges here
     # REPLACING USE NONNER self.sigmas = np.array([0.278, 0.362, 0.204, 0.320])
     self.sigmas = np.array([0.278, 0.362, 0.204, 0.200])
-    self.cacl2 = 1e-6
+    self.cacl2 = 1e-1  #this actually controls conc
 
     self.V_i = 0.375 # nm^3
     self.filter_dielectric= 63.5
@@ -51,7 +51,7 @@ class Params():
 # hard coding example that includes Mg 
 def test1(dielectric,nOxy):    #filterVolume,filterDielectric,nOxy): 
     print "WARNING: mg parameters are not verified!!!" 
-    mgcl2 = 2e-3 # [M]
+    mgcl2 = 1e-3 # [M]
     cacl2 = 1e-6 # [M] 
     kcl = 150e-3 # [M]
     #pklName = "data_%5.3f_filter_%4.1f_dielectric_%2.1f_nOxy_Mg_added_LiMerz_TEST.pkl"%(filterVolume,filterDielectric,nOxy)
@@ -64,14 +64,16 @@ def test1(dielectric,nOxy):    #filterVolume,filterDielectric,nOxy):
                                  0.0,             
                                  mgcl2])  # [M] order is  O, Cl, K, Ca, Mg     
     params.zs = np.array([-0.5, -1.0, 1.0, 2.00, 2.00]) #input charges here
-    params.sigmas = np.array([0.278, 0.454, 0.35275, 0.32, 0.28])
+    params.sigmas = np.array([0.354,0.454,0.353,0.32,0.28])
     params.filter_dielectric = dielectric
+    #params.sigmas = np.array([0.278, 0.454, 0.35275, 0.32, 0.28])
+    #params.filter_dielectric = dielectric
     params.nOxy = nOxy
 
     params.setup(nOxy,cacl2)
 
-    #daLoop(params = params,volumes=np.linspace(0.375,0.375,1))
-    daLoop(params = params,volumes=np.linspace(0.375,1.000,8))#5))
+    daLoop(params = params,volumes=np.linspace(0.6,0.6,1))
+    #daLoop(params = params,volumes=np.linspace(0.375,1.000,8))#5))
     
     print "Finished with runs"
 
@@ -86,7 +88,7 @@ def debug():
     ## 
     if 1: 
       params = Params()
-      nOxy=8; cacl2=1e-6
+      nOxy=8; cacl2=1e-10
       params.setup(nOxy,cacl2) 
       pklName = daIter(params=params)
       daIter(
@@ -371,7 +373,7 @@ if __name__ == "__main__":
       quit()
     if(arg=="-test1"): 
       #test1(np.float(sys.argv[1]),np.float(sys.argv[2]),np.float(sys.argv[3]))
-      raise RuntimeError("This doesn't make sense. PKH investiate") 
+      #raise RuntimeError("This doesn't make sense. PKH investiate") 
       test1(np.float(sys.argv[1]),np.float(sys.argv[2]))
       quit()
 

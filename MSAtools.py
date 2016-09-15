@@ -61,7 +61,7 @@ def getGamma_Iter(rhoisFilter,zs,sigmas,
     gammaFilterPrev = gammaFilter
   return gammaFilter,itersgamma
 
-@jit
+#@jit
 def getgammaRHS(rhos,zs,sigmas,gammaFilterPrev ,lambda_b=CalcBjerrum()): 
     deltaes = getdeltaes(rhos,sigmas)  # Eqn 10?
     omegaes = getomegaes(gammaFilterPrev,deltaes,rhos,sigmas) # Eqn 9 
@@ -80,7 +80,7 @@ def getgammaRHS(rhos,zs,sigmas,gammaFilterPrev ,lambda_b=CalcBjerrum()):
     return RHS
 
 # define 0 = RHS - LHS 
-@jit
+#@jit
 def myf(gamma,rhos,zs,sigmas):
     RHS = getgammaRHS(rhos,zs,sigmas,gamma ,lambda_b=CalcBjerrum())
     LHS = 4*(gamma**2)
@@ -109,12 +109,13 @@ def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=50):
 
 # verified (see notebook) 
 #@jit
-def CalcRhoFilter(muBath, muiexPrev, psi, zs, rhoisBath):
+def CalcRhoFilter(muBath, muiexPrev, psi, zs, rhoisBath,epsf):
     #raise RuntimeError("See me!!!") 
     #noOxyRhoiBath = [1,rhoibath[iOxy:]]  # assume first oxy is 1 for numerical stability 
     rhoisBath[idxOxy]= 1.0e-200  # assume first oxy is 1 for numerical stabilit
    # print np.shape(muBath), np.shape(muiexPrev)
-    deltaG = -(muBath) + zs*e0*psi + (muiexPrev) # from Nonner
+    solvs=np.array([0.0001,122.7,142.0,419.2,513.3]) # multiplied by .0291 below because of Born scaling; see Gilespie 2012. Filter and bath eps are 25.0 and 78.4...
+    deltaG = -(muBath) + zs*e0*psi + (muiexPrev) + (solvs * (78.4-epsf)/(epsf * 77.4) ) # from Nonner
     results["deltaG"]= deltaG
     #print muBath, zs*e0*psi, muiexPrev
    # print np.shape(muBath) ,np.shape(muiexPrev)
@@ -132,10 +133,10 @@ def CalcRhoFilterWTF(muBath, muiexPrev, psi, zs, rhoisBath):
     rhoisBath[idxOxy]= 1.0e-200  # assume first oxy is 1 for numerical stabilit
    # print np.shape(muBath), np.shape(muiexPrev)
     #array of solvation energies... converted to kT in the delmu_born eqn after
-    muw = np.array([0,-304,-351,-1608,-1931.4])
+    #muw = np.array([0,-304,-351,-1608,-1931.4])
     #eqn. 9 from Nonner 2001 JPC B
-    delmu_born = (muw / 0.59) * (25.0-78.4)/( 25.0 * ( 78.4 - 1) )
-    deltaG = -(muBath) + zs*e0*psi + (muiexPrev) - delmu_born # from Nonner
+    #delmu_born = (muw / 0.59) * (25.0-78.4)/( 25.0 * ( 78.4 - 1) )
+    deltaG = -(muBath) + zs*e0*psi + (muiexPrev) #- delmu_born # from Nonner
     #print muBath, zs*e0*psi, muiexPrev
    # print np.shape(muBath) ,np.shape(muiexPrev)
     kTunits = 1.
@@ -230,7 +231,7 @@ def deltaphiHS(xi_0, xi_1, xi_2, xi_3,delta):
 
 ## now we calculate the HS chemical potential
 
-@jit
+#@jit
 def HSmuis(sigmas, delta, xi_0,xi_1, xi_2,xi_3,HSphifilter):
     HSmu = (3.*xi_2*sigmas + 3.*xi_1*sigmas*sigmas)/delta 
     HSmu+= (9.*xi_2*xi_2*sigmas*sigmas)/(2.*delta*delta) 
@@ -239,12 +240,12 @@ def HSmuis(sigmas, delta, xi_0,xi_1, xi_2,xi_3,HSphifilter):
 
 ## first we define a xi function
 #@jit
-@jit
+#@jit
 def xis(rhos,sigmas,n):
     xivalue = (np.pi / 6.) * np.sum(rhos * (sigmas**n))
     return xivalue
 
-@jit
+#@jit
 def CalcHS(rhosfilter,sigmas):
   #print rhosfilter
   xi_3 = xis(rhosfilter, sigmas, 3)
@@ -265,7 +266,7 @@ def CalcHS(rhosfilter,sigmas):
 
 
 
-@jit 
+#@jit 
 # Eqn 10 Nonner  
 def getdeltaes(rhos,sigmas):
     sumtermdeltaes = np.sum(rhos* sigmas**3)  # PKH 
@@ -274,7 +275,7 @@ def getdeltaes(rhos,sigmas):
     return deltaes
 
 
-@jit
+#@jit
 # Eqn 9 Nonner 
 def getomegaes(Gamma,deltaes,rhos,sigmas):
     sumtermomegaes = np.sum((rhos*(sigmas**3))/(1.+(Gamma*sigmas)))
@@ -285,7 +286,7 @@ def getomegaes(Gamma,deltaes,rhos,sigmas):
     return omegaes
 
 
-@jit
+#@jit
 # Eqn 8 Nonner
 def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     sumtermetaes = np.sum((rhos*sigmas*zs)/(1.+(Gamma*sigmas)))
@@ -295,7 +296,7 @@ def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     #print pitermetaes
     return etaes
 
-@jit
+#@jit
 # Eqn 7 Nonner 
 def getgamma(rhos,zs,sigmas,etaes,gammaFilterPrev ,lambda_b=CalcBjerrum()):
     #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas ))**2
@@ -415,7 +416,7 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     #print psiDiff, psitol
 
     ##  Get Updated Rhois              
-    rhoisFilter = CalcRhoFilter(muexBath_kT,muiexsPrev,psiPrev,zs,rhoisBath)
+    rhoisFilter = CalcRhoFilter(muexBath_kT,muiexsPrev,psiPrev,zs,rhoisBath,epsilonFilter)
     #print 'enter rhois', rhoisFilter,psiPrev
     # reset rhoisFilter[Oxy] back to original value 
     rhoisFilter[idxOxy] = nOxy/V_i
