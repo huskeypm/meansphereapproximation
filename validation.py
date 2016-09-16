@@ -52,6 +52,7 @@ def validation1():
      print "SUCCESS RHOS!"
   else:
      print "FAIL RHOS!"
+  assert(1==0) 
 
 
 validation1()

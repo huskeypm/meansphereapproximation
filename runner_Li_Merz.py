@@ -38,8 +38,8 @@ class Params():
     self.nIons = np.shape(self.ref_conc_M)[0]
     self.Ns = np.ones( self.nIons )# Number of ions in filter (first number is fixed, others are determined by MSA)
     self.Ns[self.idxOxy] = nOxy
-    print "nOxy: ", nOxy
-    print "Ns: ", self.Ns
+    #print "nOxy: ", nOxy
+    #print "Ns: ", self.Ns
 
     # update concs
     self.conc_M = np.copy(self.ref_conc_M)
@@ -272,7 +272,9 @@ def daIter(
     
     # run MSA 
     import MSAtools as msa
-    mufilteri,donnanPotentiali,mu_ESi,mu_HSi,rhoFilteri = msa.SolveMSAEquations(
+    print params.nOxy
+    #mufilteri,donnanPotentiali,mu_ESi,mu_HSi,rhoFilteri = msa.SolveMSAEquations(
+    results =  msa.SolveMSAEquationsWrapper(
       params.filter_dielectric,
       params.conc_M,
       params.zs,
@@ -288,18 +290,13 @@ def daIter(
 
     ## store results     
     # returned
-    results["muFilter"] = mufilteri
-    results["donnanPotential"] = donnanPotentiali
-    results["mu_ES"] = mu_ESi
-    results["mu_HS"] = mu_HSi
-    results["rhoFilter"] = rhoFilteri
     results["params"] = params 
 
     # report information 
     print params.indices
-    print "mufilteri",mufilteri
-    print "rhoFilter",rhoFilteri
-    print "donnanPotential",donnanPotentiali
+    print "mufilteri",results['muFilter']
+    print "rhoFilter",results['rhoFilter']
+    print "donnanPotential",results['donnanPotential']
     end = timer()
     print(end - start), " elapsed seconds "
 
