@@ -339,8 +339,8 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     alpha = alpha, # convergence rate (faster values accelerate convergence) 
     #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
     maxitersGamma = maxitersGamma, # ion before loop leaves in dispair 
-    #gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
-    gammaOpt=gammaOpt, # "Brents",  #useSelfConsistGammaOpt 
+    gammaOpt="Brents",  #useSelfConsistGammaOpt 
+    #gammaOpt=gammaOpt, # "Brents",  #useSelfConsistGammaOpt 
     mu_Strain= mu_Strain, 
     hydrationEnergies=hydrationEnergies,
     verbose=verbose)
@@ -364,8 +364,8 @@ def SolveMSAEquationsWrapper(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   alpha = 1e-3,  # convergence rate (faster values accelerate convergence) 
   #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
   maxitersGamma = 1e2, # max iteration before loop leaves in dispair 
-  #gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
-  gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
+  gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
+  #gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
   mu_Strain= None,   
   hydrationEnergies=None,
   verbose=False):
