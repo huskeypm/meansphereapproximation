@@ -23,7 +23,7 @@ results["e0"] = e0
 # lambda = e^2/ (4 pi eps eps_r kT)
 # numbers from Israelachvili
 # Verified 
-@jit
+#@jit
 def CalcBjerrum(epsilon=epsBath): 
   denom = 8.854e-12 * epsilon *1.381e-23 * 298 # eps0*eps*k*T
   num = (1.602e-19)**2 # e^2
@@ -62,7 +62,7 @@ def getGamma_Iter(rhoisFilter,zs,sigmas,
     gammaFilterPrev = gammaFilter
   return gammaFilter,itersgamma
 
-@jit
+#@jit
 def getgammaRHS(rhos,zs,sigmas,gammaFilterPrev ,lambda_b=CalcBjerrum()): 
     deltaes = getdeltaes(rhos,sigmas)  # Eqn 10?
     omegaes = getomegaes(gammaFilterPrev,deltaes,rhos,sigmas) # Eqn 9 
@@ -81,7 +81,7 @@ def getgammaRHS(rhos,zs,sigmas,gammaFilterPrev ,lambda_b=CalcBjerrum()):
     return RHS
 
 # define 0 = RHS - LHS 
-@jit
+#@jit
 def myf(gamma,rhos,zs,sigmas):
     RHS = getgammaRHS(rhos,zs,sigmas,gamma ,lambda_b=CalcBjerrum())
     LHS = 4*(gamma**2)
@@ -109,7 +109,7 @@ def getGamma_Brents(rhos,zs,sigmas,leftBound=0,rightBound=50):
 
 
 # verified (see notebook) 
-@jit
+#@jit
 def CalcRhoFilter(muBath, muiexPrev, psi, zs, rhoisBath,epsf,muSolvs):
     #raise RuntimeError("See me!!!") 
     #noOxyRhoiBath = [1,rhoibath[iOxy:]]  # assume first oxy is 1 for numerical stability 
@@ -117,24 +117,25 @@ def CalcRhoFilter(muBath, muiexPrev, psi, zs, rhoisBath,epsf,muSolvs):
    # print np.shape(muBath), np.shape(muiexPrev)
     deltaG = -(muBath) + zs*e0*psi + (muiexPrev) 
     deltaG+= muSolvs                                                     
-    #print muBath, zs*e0*psi, muiexPrev
+    
+   #print muBath, zs*e0*psi, muiexPrev
    # print np.shape(muBath) ,np.shape(muiexPrev)
     kTunits = 1.
     #print "deltaG [kT] ", deltaG
     # for kT=1, kT ln p' = kT ln p - deltaG ---> p' = p exp(-deltaG/kT)
     pFilter = np.exp(-deltaG/kTunits)*rhoisBath
     rhoisBath[idxOxy]= 0. 
-    return deltaG,pFilter
+    return deltaG, pFilter
 
 # Verified 
-@jit
+#@jit
 def CalcKappa(conc_M):
   ionSum = np.sum(conc_M) 
   kappaSqd = 6.022e26 * ionSum * CalcBjerrum() * 4 * np.pi
   return np.sqrt(kappaSqd)
 
 #zs = np.array([-0.5, -1.0, 1.0, 2.0, 2.0])
-@jit
+#@jit
 def CalcMuexs(Gamma,zs,lambda_b=CalcBjerrum()):
     #for i in zs:
     muiexs = -kT_kcalmol*lambda_b * m_to_nm  
@@ -146,7 +147,7 @@ def CalcMuexs(Gamma,zs,lambda_b=CalcBjerrum()):
 
     return muiexs
 
-@jit
+#@jit
 def UpdatePsi(rhos,zs,psiPrev):
     
     numpsi = np.sum(zs*rhos)
@@ -202,7 +203,7 @@ def MSAeqn(x,Ns, Vs,zs,sigmas,lambda_b=CalcBjerrum(),eta=0,verbose=False):  # eq
 
 
 
-@jit
+#@jit
 def deltaphiHS(xi_0, xi_1, xi_2, xi_3,delta):
     HSphi = xi_3/delta + (3.*xi_1*xi_2)/(xi_0*delta*delta) + (3.*xi_2*xi_2*xi_2)/(xi_0*delta*delta*delta)
     return HSphi
@@ -211,7 +212,7 @@ def deltaphiHS(xi_0, xi_1, xi_2, xi_3,delta):
 
 ## now we calculate the HS chemical potential
 
-@jit
+#@jit
 def HSmuis(sigmas, delta, xi_0,xi_1, xi_2,xi_3,HSphifilter):
     HSmu = (3.*xi_2*sigmas + 3.*xi_1*sigmas*sigmas)/delta 
     HSmu+= (9.*xi_2*xi_2*sigmas*sigmas)/(2.*delta*delta) 
@@ -219,12 +220,12 @@ def HSmuis(sigmas, delta, xi_0,xi_1, xi_2,xi_3,HSphifilter):
     return HSmu
 
 ## first we define a xi function
-@jit
+#@jit
 def xis(rhos,sigmas,n):
     xivalue = (np.pi / 6.) * np.sum(rhos * (sigmas**n))
     return xivalue
 
-@jit
+#@jit
 def CalcHS(rhosfilter,sigmas):
   #print rhosfilter
   xi_3 = xis(rhosfilter, sigmas, 3)
@@ -245,7 +246,7 @@ def CalcHS(rhosfilter,sigmas):
 
 
 
-@jit 
+#@jit 
 # Eqn 10 Nonner  
 def getdeltaes(rhos,sigmas):
     sumtermdeltaes = np.sum(rhos* sigmas**3)  # PKH 
@@ -254,7 +255,7 @@ def getdeltaes(rhos,sigmas):
     return deltaes
 
 
-@jit
+#@jit
 # Eqn 9 Nonner 
 def getomegaes(Gamma,deltaes,rhos,sigmas):
     sumtermomegaes = np.sum((rhos*(sigmas**3))/(1.+(Gamma*sigmas)))
@@ -265,7 +266,7 @@ def getomegaes(Gamma,deltaes,rhos,sigmas):
     return omegaes
 
 
-@jit
+#@jit
 # Eqn 8 Nonner
 def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     sumtermetaes = np.sum((rhos*sigmas*zs)/(1.+(Gamma*sigmas)))
@@ -275,7 +276,7 @@ def getetaes(omegaes,deltaes,rhos,sigmas,zs,Gamma):
     #print pitermetaes
     return etaes
 
-@jit
+#@jit
 # Eqn 7 Nonner 
 def getgamma(rhos,zs,sigmas,etaes,gammaFilterPrev ,lambda_b=CalcBjerrum()):
     #PKH sqdTerm = (rhos)*((zs - etaes*sigmas*sigmas)/(1 + gammaFilterPrev*sigmas ))**2
@@ -322,8 +323,8 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
   alpha = 1e-3,  # convergence rate (faster values accelerate convergence) 
   #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
   maxitersGamma = 1e2, # max iteration before loop leaves in dispair 
-  #gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
-  gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
+  gammaOpt="useSelfConsistGammaOpt", # "Brents",  #useSelfConsistGammaOpt 
+  #gammaOpt="Brents", # "Brents",  #useSelfConsistGammaOpt 
   mu_Strain= None,
   hydrationEnergies=None,
   verbose=False):
@@ -339,13 +340,13 @@ def SolveMSAEquations(epsilonFilter,conc_M,zs,Ns,V_i,sigmas,
     alpha = alpha, # convergence rate (faster values accelerate convergence) 
     #maxitersGamma = 1e8, # max iteration before loop leaves in dispair 
     maxitersGamma = maxitersGamma, # ion before loop leaves in dispair 
-    gammaOpt="Brents",  #useSelfConsistGammaOpt 
-    #gammaOpt=gammaOpt, # "Brents",  #useSelfConsistGammaOpt 
+    #gammaOpt="Brents",  #useSelfConsistGammaOpt 
+    gammaOpt=gammaOpt, # "Brents",  #useSelfConsistGammaOpt 
     mu_Strain= mu_Strain, 
     hydrationEnergies=hydrationEnergies,
     verbose=verbose)
   
-  return results['muBath'],\
+  return results['muFilter'],\
          results['donnanPotential'],\
          results['mu_ES'],\
          results['mu_HS'],\
